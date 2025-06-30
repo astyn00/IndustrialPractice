@@ -3,7 +3,7 @@ import time
 from data_generator import generate_fake_reading
 
 # The URL of our running Flask API
-API_URL = "http://127.0.0.1:5000/api/readings"
+API_URL = "https://industrialpractice.onrender.com/api/readings"
 
 def send_reading_to_api(reading):
     """Sends a single reading to the API via a POST request."""
