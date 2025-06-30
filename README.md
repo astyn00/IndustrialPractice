@@ -1,22 +1,3 @@
-Of course. Now that you have a live, deployed application, your README.md can be updated to be even more professional and complete. This final version will include a link to your live project, making it instantly interactive for anyone who visits your GitHub.
-
-This is the last piece of documentation you need.
-
-Final, Upgraded README.md Code
-
-Action:
-
-Open the README.md file in your VS Code project.
-
-Delete all the existing text.
-
-Copy the entire block of code below and paste it in.
-
-Crucially, replace the placeholder URL https://industrialpractice.onrender.com with your actual live URL.
-
-Save the file, then commit and push this final update to GitHub.
-
-Generated markdown
 # Real-Time Industrial Monitoring & Alerting System
 
 | Live Demo |
