@@ -1,87 +1,72 @@
-# Data Monitoring System for Industrial Practice
+# Real-Time Industrial Monitoring & Alerting System
 
-This project is a backend data monitoring system developed as part of the Industrial Practice for the Computer Science program at Astana IT University. The system is designed to simulate the collection, processing, and storage of energy sensor data from an industrial environment at ТОО «Болашақ Энергиясы».
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
+![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
 
-## Core Features
+This project is a comprehensive backend system developed for the Industrial Practice course at Astana IT University. It simulates a real-time monitoring and alerting platform for an industrial setting, such as the one at `ТОО «Болашақ Энергиясы»`.
 
--   **Data Simulation:** A Python script generates realistic, time-series sensor data.
--   **Backend API:** A RESTful API built with Python and Flask receives and processes incoming data.
--   **Data Persistence:** Sensor readings are stored and managed in a PostgreSQL database.
--   **Validation Logic:** The API includes logic to validate incoming data and flag critical readings (e.g., based on status or high energy values).
--   **Secure Configuration:** Uses environment variables (`.env` file) to manage sensitive information like database credentials, following best practices.
--   **Unit Testing:** Includes unit tests written with `pytest` to ensure the reliability of the core business logic.
+The system is designed to ingest time-series data from sensors, process it, identify critical events, persist the data for analysis, and provide immediate, multi-channel notifications.
 
-## Technology Stack
+## Key Features
 
--   **Backend:** Python 3.9+
--   **API Framework:** Flask
--   **Database:** PostgreSQL
--   **Database Driver:** `psycopg2`
--   **Testing:** `pytest`
--   **Version Control:** Git
+-   **Backend API**: A robust API built with **Python** and **Flask** to receive and process sensor data.
+-   **Real-Time Dashboard**: A live, single-page web application built with **HTML/JS** that uses **WebSockets (Flask-SocketIO)** to display all incoming sensor readings and critical alerts without needing a page refresh. Includes a light/dark theme switcher.
+-   **Multi-Channel Alerting**: In addition to the dashboard, the system sends instant push notifications for critical events via a **Telegram Bot**, demonstrating third-party API integration.
+-   **Data Persistence**: All readings are stored in a **PostgreSQL** database, with critical events flagged for easy querying.
+-   **Containerization**: The entire application is containerized using **Docker**, ensuring consistency across development and deployment environments.
+-   **Secure Configuration**: Utilizes environment variables (`.env`) for managing sensitive credentials like database passwords and API tokens.
+-   **Automated Testing**: Includes a suite of unit tests written with **pytest** to validate the core business logic.
 
-## Project Structure
-/data-monitoring-system/
-│
-├── api/
-│ └── app.py # Main Flask API server
-│
-├── data_collector/
-│ ├── collector.py # Script to send data to the API
-│ └── data_generator.py # Script to simulate sensor data
-│
-├── database/
-│ └── setup.sql # SQL script to create the database table
-│
-├── tests/
-│ └── test_validation.py # Unit tests for the validation logic
-│
-├── .env # Environment variables (e.g., DB_PASSWORD)
-├── .gitignore # Specifies files for Git to ignore
-└── README.md # This documentation file
+## System Architecture
 
+The system operates as follows:
+1.  A `collector` script simulates sensor data and sends it to the API.
+2.  The Flask API receives the data, analyzes it, and saves it to the PostgreSQL database.
+3.  If an event is critical, the API simultaneously:
+    -   Emits a WebSocket event to all connected dashboard clients with details about the event and the reason it was flagged.
+    -   Sends a formatted alert message via the Telegram Bot API to a specified user or channel.
 
-## Setup and Installation
+## Local Development & Testing
 
-Follow these steps to run the project locally.
+Follow these steps to run the project on your local machine.
 
-1.  **Prerequisites:**
-    -   Python 3.9+
-    -   PostgreSQL
-    -   Git
+#### 1. Prerequisites
+-   Python 3.9+
+-   PostgreSQL
+-   Git
 
-2.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/data-monitoring-system.git
-    cd data-monitoring-system
-    ```
-
-3.  **Set up the Database:**
-    -   Create a new database in PostgreSQL named `bolashak_energy`.
-    -   Run the `database/setup.sql` script in pgAdmin to create the `sensor_readings` table.
-
-4.  **Create a Virtual Environment and Install Dependencies:**
-    ```bash
-    python -m venv venv
-    .\venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
-
-5.  **Configure Environment Variables:**
-    -   Create a file named `.env` in the root directory.
-    -   Add your PostgreSQL password to it:
-        ```
-        DB_PASSWORD="your_postgres_password"
-        ```
-
-## How to Run the System
-
-You will need two terminals.
-
-**Terminal 1: Start the API Server**
+#### 2. Clone the Repository
 ```bash
+# Replace with your own GitHub username and repository name
+git clone https://github.com/astyn00/IndustrialPractice.git
+cd IndustrialPractice
+### 3. Setup Environment
+# Create and activate a virtual environment
+python -m venv venv
+.\venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create a .env file in the project root and add your credentials
+# DB_PASSWORD="your_local_postgres_password"
+# TELEGRAM_BOT_TOKEN="your_bot_token"
+# TELEGRAM_CHAT_ID="your_chat_id"
+
+#### 4. Run the System
+You will need two terminals.
+Terminal 1: Start the API Server
 # Make sure your virtual environment is active
 python api/app.py
-
+The server will start on http://127.0.0.1:5000
+Terminal 2: Run the Data Collector
 # Make sure your virtual environment is active
 python data_collector/collector.py
+Now, open http://127.0.0.1:5000 in your browser to see the live dashboard in action.
+#### Running Tests
+To run the unit tests, execute the following command in your terminal (with the virtual environment active):
+pytest
