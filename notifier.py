@@ -12,6 +12,7 @@ async def send_telegram_alert(message):
         return
 
     try:
+        # Note: The library name is 'telegram', the class is 'Bot'.
         bot = telegram.Bot(token=token)
         await bot.send_message(chat_id=chat_id, text=message)
         print(f"Successfully sent Telegram alert to chat ID {chat_id}")
