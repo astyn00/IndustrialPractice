@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Sensor Monitoring Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        :root {
+            --bg-color: #0d1117; --text-color: #c9d1d9; --header-color: #58a6ff;
+            --panel-bg: #161b22; --border-color: #30363d; --text-muted: #8b949e;
+            --dot-normal: #238636; --dot-warning: #d29922; --dot-error: #f85149;
+            --alert-bg: #2d1a1a;
+        }
+        body.light-theme {
+            --bg-color: #f6f8fa; --text-color: #24292e; --header-color: #0366d6;
+            --panel-bg: #ffffff; --border-color: #e1e4e8; --text-muted: #586069;
+            --alert-bg: #fffbdd;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 24px; transition: background-color 0.3s, color 0.3s; }
+        .dashboard { max-width: 1200px; margin: auto; }
+        header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); position: relative;}
+        h1 { color: var(--header-color); margin-bottom: 8px; }
+        #status-bar { color: var(--text-muted); }
+        #theme-switcher { position: absolute; top: 0; right: 0; background: var(--panel-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .main-content { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        .feed-panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px; height: 70vh; display: flex; flex-direction: column; }
+        .feed-panel h2 { margin-top: 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .feed-list { list-style-type: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        .feed-list::-webkit-scrollbar { width: 8px; } .feed-list::-webkit-scrollbar-track { background: var(--panel-bg); } .feed-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .feed-item { padding: 12px; margin-bottom: 8px; border-radius: 4px; display: flex; align-items: flex-start; gap: 12px; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+        .status-normal { background-color: var(--dot-normal); } .status-warning { background-color: var(--dot-warning); } .status-error { background-color: var(--dot-error); }
+        .feed-content { flex-grow: 1; } .feed-content strong { color: var(--header-color); }
+        .timestamp { font-size: 0.8em; color: var(--text-muted); display: block; margin-top: 4px; }
+        .reason { font-size: 0.9em; margin-top: 6px; color: #ffacac; font-style: italic; }
+        .critical-alert { background-color: var(--alert-bg); border-left: 4px solid var(--dot-error); }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Real-Time Industrial Sensor Dashboard</h1>
+            <div id="status-bar"><span>Status: <strong id="connection-status" style="color: #f85149;">Disconnected</strong></span> | <span>Total Readings Processed: <strong id="reading-count">0</strong></span></div>
+            <button id="theme-switcher">Toggle Theme</button>
+        </header>
+        <div class="main-content">
+            <div class="feed-panel"><h2>Live Event Log (All Readings)</h2><ul class="feed-list" id="event-list"></ul></div>
+            <div class="feed-panel"><h2>Critical Alerts</h2><ul class="feed-list" id="critical-alert-list"></ul></div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let readingCount = 0;
+        const themeSwitcher = document.getElementById('theme-switcher');
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) { document.body.classList.add(currentTheme); }
+        themeSwitcher.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            let theme = document.body.classList.contains('light-theme') ? 'light-theme' : 'dark-theme';
+            localStorage.setItem('theme', theme);
+        });
+        socket.on('connect', () => {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.textContent = 'Connected';
+            statusEl.style.color = 'var(--dot-normal)';
+        });
+        socket.on('disconnect', () => {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.textContent = 'Disconnected';
+            statusEl.style.color = 'var(--dot-error)';
+        });
+        socket.on('new_reading', (data) => {
+            updateReadingCount();
+            addEventToLog(data);
+        });
+        socket.on('critical_event', (data) => {
+            addCriticalAlert(data);
+        });
+        function updateReadingCount() {
+            readingCount++;
+            document.getElementById('reading-count').textContent = readingCount;
+        }
+        function createFeedItem(data) {
+            const item = document.createElement('li');
+            item.className = 'feed-item';
+            const dot = document.createElement('div');
+            dot.className = `status-dot status-${data.status}`;
+            const content = document.createElement('div');
+            content.className = 'feed-content';
+            let message = `Sensor <strong>${data.sensor_id}</strong> | Energy: <strong>${data.energy_kwh} kWh</strong> | Status: ${data.status}`;
+            const timestamp = `<span class="timestamp">${new Date(data.timestamp).toLocaleString()}</span>`;
+            let reasonHtml = '';
+            if (data.reason) {
+                reasonHtml = `<div class="reason">Reason: ${data.reason}</div>`;
+            }
+            content.innerHTML = message + reasonHtml + timestamp;
+            item.appendChild(dot);
+            item.appendChild(content);
+            return item;
+        }
+        function addEventToLog(data) {
+            const list = document.getElementById('event-list');
+            list.prepend(createFeedItem(data));
+        }
+        function addCriticalAlert(data) {
+            const list = document.getElementById('critical-alert-list');
+            const item = createFeedItem(data);
+            item.classList.add('critical-alert');
+            list.prepend(item);
+        }
+    </script>
+</body>
+</html>
