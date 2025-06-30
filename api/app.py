@@ -4,32 +4,47 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 import asyncio
-from notifier import send_telegram_alert # <-- THIS IS THE CORRECTED IMPORT
+from notifier import send_telegram_alert
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
-# This async_mode is for Gunicorn compatibility in Docker/Render
-socketio = SocketIO(app, async_mode='gunicorn')
+# Simplified initialization - This is now correct because the Dockerfile handles the server type
+socketio = SocketIO(app)
+
 
 # --- Database Connection ---
 def get_db_connection():
-    """Establishes a connection to the PostgreSQL database."""
-    # This will use the DATABASE_URL from Render's environment
+    """
+    Establishes a connection to the PostgreSQL database.
+    Uses the DATABASE_URL environment variable when deployed on Render.
+    """
     database_url = os.getenv('DATABASE_URL')
     if not database_url:
-        raise ValueError("FATAL: DATABASE_URL environment variable is not set.")
+        # Fallback for local testing if DATABASE_URL isn't set, using .env
+        print("DATABASE_URL not found, falling back to local .env configuration.")
+        password = os.getenv('DB_PASSWORD')
+        if not password:
+            raise ValueError("DB_PASSWORD must be set in .env for local testing.")
+        return psycopg2.connect(host="localhost", database="bolashak_energy", user="postgres", password=password)
     
+    # Use the full URL provided by the deployment environment (Render)
     return psycopg2.connect(database_url)
+
 
 # --- API Endpoints ---
 @app.route('/')
 def index():
+    """Serves the live monitoring dashboard HTML page."""
     return render_template('index.html')
 
 @app.route('/api/readings', methods=['POST'])
 def add_reading():
+    """
+    Receives a new sensor reading, saves it to the database,
+    and emits real-time events.
+    """
     data = request.get_json()
     if not data or 'sensor_id' not in data or 'energy_kwh' not in data:
         return jsonify({"error": "Invalid data provided"}), 400
@@ -55,7 +70,6 @@ def add_reading():
         app.logger.info(f"CRITICAL EVENT: {reason}")
         socketio.emit('critical_event', data)
         alert_message = f"⚠️ CRITICAL ALERT ⚠️\nSensor: {data['sensor_id']}\nReason: {reason}"
-        # Run the async telegram function
         asyncio.run(send_telegram_alert(alert_message))
 
     # Save to database
@@ -76,5 +90,8 @@ def add_reading():
 
     return jsonify({"message": "Reading processed successfully"}), 201
 
-# Note: The if __name__ == '__main__': block is not used by Gunicorn
-# but is kept for potential local testing.
+
+if __name__ == '__main__':
+    print("Starting Flask-SocketIO development server on http://127.0.0.1:5000")
+    # This runs the app for local development
+    socketio.run(app, debug=True, port=5000)
